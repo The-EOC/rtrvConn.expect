@@ -1,0 +1,69 @@
+#!/usr/bin/expect 
+
+#Set Variables from user
+puts -nonewline stdout "Enter Node: "; flush stdout; gets stdin tids
+puts -nonewline stdout  "Enter User ID: "; flush stdout; gets stdin uid
+puts -nonewline stdout  "Enter File Name: "; flush stdout; gets stdin logFile
+
+puts -nonewline stdout "Password: "; flush stdout;
+stty -echo
+gets stdin password
+stty echo
+
+foreach tid $tids {
+	#Begin a new ssh session on specified host
+	spawn ssh $tid
+	
+	#Login to the device
+	set login "ACT-USER::$uid:ID::$password;"
+	expect {
+		"< " {
+		send $login
+		}	
+        	"(yes/no)?" {
+		send "yes\r"
+		exp_continue
+		}
+	}
+
+	#Begin logging input
+	log_file $logFile
+	send_log "========================== $tid ===================================="
+	send_log "\n"
+
+	#Retrieve Optical Related Facilities
+	send_log "++++++++++++++++++ OPTICAL +++++++++++++++++++++++++++++++"
+	send_log "\n"
+	expect "< " {send "RTRV-PTP::ALL:ID:::;"}
+	expect "< " {send "RTRV-ETH10G::ALL:ID:::;"}
+	expect "< " {send "RTRV-ODU::ALL:ID:::;"}
+	expect "< " {send "RTRV-OTUTTP::ALL:ID:::;"}
+	expect "< " {send "RTRV-ODUTTP::ALL:ID:::;"}
+	expect "< " {send "RTRV-ODUCTP::ALL:ID:::;"}
+	expect "< " {send "RTRV-ETTP::ALL:ID:::;"}
+	expect "< " {send "RTRV-STTP::ALL:ID:::;"}
+	expect "< " {send "RTRV-OTM::ALL:ID:::;"}
+	expect "< " {send "RTRV-OTM2::ALL:ID:::;"}
+	expect "< " {send "RTRV-OTM3::ALL:ID:::;"}
+	expect "< " {send "RTRV-OTM4::ALL:ID:::;"}
+	expect "< " {send "RTRV-ADJ::ALL:ID:::;"}
+	expect "< " {send "RTRV-FLEX::ALL:ID:::;"}
+
+
+	#Retrieve SONET Related facilities
+	expect "< " {send "RTRV-OC3::ALL:ID:::;"}
+	send_log "+++++++++++++++++++++++++ SONET ++++++++++++++++++++++++++++"
+	send_log "\n"
+	expect "< " {send "RTRV-OC12::ALL:ID:::;"}
+	expect "< " {send "RTRV-OC48::ALL:ID:::;"}
+	expect "< " {send "RTRV-OC192::ALL:ID:::;"}
+
+	#Log User out
+	set logout "CANC-USER::$uid:ID;"
+	expect "< " {send $logout}
+	#Logout
+	expect "< " {send "\r~."}
+	send_log "======================================================================"
+	send_log "\n"
+	log_file
+}
